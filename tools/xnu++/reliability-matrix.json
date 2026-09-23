@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "project": "xnu++",
+  "independence": "semi-independent",
+  "feature_status": {
+    "capability_registry": "interface-defined",
+    "provider_health": "interface-defined",
+    "safe_service_failover": "interface-defined",
+    "checkpoint_recovery": "planned",
+    "transactional_updates": "policy-defined",
+    "resource_quotas": "planned",
+    "structured_crash_reports": "planned",
+    "device_simulator": "planned"
+  },
+  "rules": {
+    "security_provider_failover": "never",
+    "unknown_required_capability": "deny",
+    "optional_capability": "degrade-with-diagnostic"
+  }
+}
