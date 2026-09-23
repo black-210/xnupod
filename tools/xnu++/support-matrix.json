@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "devices": {
+    "virtio-block": {"status":"emulator-tested","bus":"virtio","required":false},
+    "virtio-net": {"status":"emulator-tested","bus":"virtio","required":false},
+    "pcie": {"status":"interface-defined","bus":"pcie","required":false},
+    "nvme": {"status":"planned","bus":"pcie","required":false},
+    "usb": {"status":"interface-defined","bus":"usb","required":false},
+    "i2c": {"status":"interface-defined","bus":"i2c","required":false},
+    "spi": {"status":"interface-defined","bus":"spi","required":false},
+    "ethernet": {"status":"planned","bus":"pcie","required":false}
+  },
+  "policy": {"unverified_devices":"deny", "unknown_capabilities":"deny"}
+}
