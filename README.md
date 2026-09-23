@@ -1,511 +1,400 @@
-# What is XNU?
+# xnu++
 
-XNU kernel is part of the Darwin operating system for use in macOS and iOS operating systems. XNU is an acronym for X is Not Unix.
-XNU is a hybrid kernel combining the Mach kernel developed at Carnegie Mellon University with components from FreeBSD and a C++ API for writing drivers called IOKit.
-XNU runs on x86_64 and ARM64 for both single processor and multi-processor configurations.
+xnu++ is a semi-independent operating-system engineering layer built around the XNU codebase and designed to close practical gaps left by upstream Apple distributions. It is not a claim that a complete OS replacement already exists; it is a structured compatibility layer, a distribution model, a device abstraction, a security policy framework, and a reliability platform that can evolve toward a fully independent provider without discarding the robust components already present in XNU.
 
-## The XNU Source Tree
+This repository keeps the upstream XNU tree intact while adding portable tooling, explicit capability detection, provider-neutral interfaces, stronger release policy, recovery logic, and device abstractions. The project is intentionally honest: it distinguishes between what is inherited from XNU, what is adapted, and what is still planned or experimental.
 
-* `config` - configurations for exported apis for supported architecture and platform
-* `SETUP` - Basic set of tools used for configuring the kernel, versioning and kextsymbol management.
-* `EXTERNAL_HEADERS` - Headers sourced from other projects to avoid dependency cycles when building. These headers should be regularly synced when source is updated.
-* `libkern` - C++ IOKit library code for handling of drivers and kexts.
-* `libsa` -  kernel bootstrap code for startup
-* `libsyscall` - syscall library interface for userspace programs
-* `libkdd` - source for user library for parsing kernel data like kernel chunked data.
-* `makedefs` - top level rules and defines for kernel build.
-* `osfmk` - Mach kernel based subsystems
-* `pexpert` - Platform specific code like interrupt handling, atomics etc.
-* `security` - Mandatory Access Check policy interfaces and related implementation.
-* `bsd` - BSD subsystems code
-* `tools` - A set of utilities for testing, debugging and profiling kernel.
+The design philosophy is simple:
 
-## How to Build XNU
+- Reuse what is already good and stable.
+- Keep compatibility with XNU where it matters.
+- Add explicit capability detection instead of guessing platform assumptions.
+- Make unsupported devices, firmware paths, and security states fail closed.
+- Provide better diagnostics, recovery, rollback, and policy than the default Apple distribution model.
+- Create a path toward a future provider-independent xnu++ kernel without pretending that the entire operating system is already independent.
 
-### Building a `DEVELOPMENT` Kernel
+## Why xnu++ exists
 
-The xnu make system can build kernel based on `KERNEL_CONFIGS` & `ARCH_CONFIGS` variables as arguments.
-Here is the syntax:
+XNU is a powerful and mature kernel, but it is not the full story of a modern open operating system. Real distributions require more than Mach, BSD, and IOKit alone:
 
-```text
-make SDKROOT=<sdkroot> ARCH_CONFIGS=<arch> KERNEL_CONFIGS=<variant>
-```
+- robust capability detection and validation
+- provider-neutral device abstraction
+- secure update and rollback systems
+- service isolation and quota enforcement
+- recovery-oriented diagnostics
+- safer handling of unsupported hardware
+- a documented path toward independent platform services
 
-Where:
+xnu++ addresses these needs by adding a semi-independent layer that can be implemented by XNU today and by a future native xnu++ provider later.
 
-* `<sdkroot>`: path to macOS SDK on disk. (defaults to `/`)
-* `<variant>`: can be `debug`, `development`, `release`, `profile` and configures compilation flags and asserts throughout kernel code.
-* `<arch>`: can be valid arch to build for. (E.g. `X86_64`)
+## Project goals
 
-To build a kernel for the same architecture as running OS, just type
+1. Preserve upstream XNU compatibility whenever possible.
+2. Remove ambiguity around supported hardware, platform assumptions, and required SDK tools.
+3. Add structured diagnostics and recovery instead of silent failure.
+4. Introduce provider-neutral interfaces for devices, security, compatibility, and service health.
+5. Provide update and recovery policies that are stronger than the default upstream assumptions.
+6. Keep the project modular so it remains practical to rebase against future XNU imports.
+7. Support a future fully independent provider without breaking XNU compatibility today.
 
-```text
-make SDKROOT=macosx.internal
-```
+## Architecture summary
 
-Additionally, there is support for configuring architectures through `ARCH_CONFIGS` and kernel configurations with `KERNEL_CONFIGS`.
+xnu++ is organized into three primary layers:
 
-```text
-make SDKROOT=macosx.internal ARCH_CONFIGS=X86_64 KERNEL_CONFIGS=DEVELOPMENT
-make SDKROOT=macosx.internal ARCH_CONFIGS=X86_64 KERNEL_CONFIGS="RELEASE DEVELOPMENT DEBUG"
-```
+### 1. Kernel providers
 
-> Note: By default, the architecture is set to the build machine's architecture, and the default kernel config is set to build for `DEVELOPMENT`.
+This is the source of the actual kernel implementation.
 
-This will also create a bootable image, kernel.[config],  and a kernel binary
-with symbols, kernel.[config].unstripped.
+- XNU/Mach/BSD/IOKit provider
+- future native xnu++ provider
+- alternate compatible providers
 
-To install the kernel into a DSTROOT, use the `install_kernels` target:
+A provider is selected explicitly. There is no hidden fallback from a security-sensitive provider to an untrusted one.
 
-```text
-make install_kernels DSTROOT=/tmp/xnu-dst
-```
+### 2. Platform services
 
-For a more satisfying kernel debugging experience, with access to all
-local variables and arguments, but without all the extra check of the
-DEBUG kernel, add something like the following to your make command:
+These are the components that convert generic capabilities to real hardware support.
 
-```text
-CFLAGS_DEVELOPMENTARM64="-O0 -g -DKERNEL_STACK_MULTIPLIER=2"
-CXXFLAGS_DEVELOPMENTARM64="-O0 -g -DKERNEL_STACK_MULTIPLIER=2"
-```
+- device discovery and classification
+- bus abstraction
+- interrupt and DMA handling
+- power and lifecycle management
+- storage and networking support
+- compatibility and capability probing
+- security verification and audit boundaries
 
-Remember to replace `DEVELOPMENT` and `ARM64` with the appropriate build and platform.
+### 3. Distribution services
 
-> Extra Flags: You can pass additional flags to the C compiler at the command line with the `EXTRA_CFLAGS` build setting. These flags are appended to the base `CFLAGS`, and the default value for the setting is an empty string.
->
-> This setting allows you to e.g. selectively turn on debugging code that is guarded by a preprocessor macro. Example usage...
->
-> ```text
-> make SDKROOT=macosx.internal PRODUCT_CONFIGS=j314s 
-> EXTRA_CFLAGS='-DKERNEL_STACK_MULTIPLIER=2'
-> ```
+These are the higher-level system services needed for a complete environment.
 
+- recovery and rollback
+- package and update verification
+- signed offline recovery
+- service supervision and isolation
+- diagnostics and crash collection
+- safe support matrices and hardware profiles
 
-* To build with RELEASE kernel configuration
+## Design model: semi-independent by default
 
-    ```text
-    make KERNEL_CONFIGS=RELEASE SDKROOT=/path/to/SDK
-    ```
+The project is intentionally designed as semi-independent rather than fully independent.
 
-### Building FAT Kernel Binary
+This means:
 
-Define architectures in your environment or when running a make command.
+- XNU remains the baseline provider for compatibility and maturity.
+- xnu++ adds a compatibility and policy layer that is independent of Apple-private assumptions.
+- the same interfaces can later be implemented by a native xnu++ kernel or another provider.
+- features are considered supported only when they are tested, documented, and recoverable.
 
-```text
-make ARCH_CONFIGS="X86_64" exporthdrs all
-```
+This is a strength, not a weakness. It avoids the lie that a project is independent before it has a tested provider, boot path, recovery story, and hardware support matrix.
 
+## Core features added
 
+The repository now includes a broad set of feature-oriented files and interfaces.
 
-### Other Makefile Options
+### 1. Project identity and documentation
 
-* $ make MAKEJOBS=-j8    # this will use 8 processes during the build. The default is 2x the number of active CPUS.
-* $ make -j8             # the standard command-line option is also accepted
-* $ make -w              # trace recursive make invocations. Useful in combination with VERBOSE=YES
-* $ make BUILD_LTO=0     # build without LLVM Link Time Optimization
-* $ make BOUND_CHECKS=0  # disable -fbound-attributes for this build
-* $ make REMOTEBUILD=user@remotehost # perform build on remote host
-* $ make BUILD_CODE_COVERAGE=1 # build with support for collecting code coverage information
+Files:
 
-The XNU build system can optionally output color-formatted build output. To enable this, you can either
-set the `XNU_LOGCOLORS` environment variable to `y`, or you can pass `LOGCOLORS=y` to the make command.
+- `XNU++_README.md`
+- `XNU++_VERSION`
+- `doc/xnu++_roadmap.md`
+- `doc/xnu++_feature_plan.md`
+- `doc/xnu++_platform.md`
+- `doc/xnu++_independence.md`
+- `doc/xnu++_reliability.md`
+- `doc/xnu++_capabilities.md`
+- `doc/xnu++_milestones.md`
 
-### Customize the XNU Version
+These define the professional model, roadmap, milestones, and independence boundaries.
 
-The xnu version is derived from the SDK or KDK by reading the `CFBundleVersion`
-of their `System/Library/Extensions/System.kext/Info.plist` file.
-This can be customized by setting the `RC_DARWIN_KERNEL_VERSION` variable in
-the environment or on the `make` command line.
+### 2. Source-tree validation and diagnostics
 
+Files:
 
-See doc/building/xnu_version.md for more details.
+- `tools/xnu++/doctor.sh`
+- `tools/xnu++/validate.sh`
+- `tools/xnu++/validate-reliability.sh`
+- `tools/xnu++/validate-profile.sh`
+- `tools/xnu++/capabilities.json`
+- `tools/xnu++/support-matrix.json`
+- `tools/xnu++/reliability-matrix.json`
+- `.github/workflows/xnu++-checks.yml`
 
-### Debug Information Formats
+These validate:
 
-By default, a DWARF debug information repository is created during the install phase; this is a "bundle" named kernel.development.\<variant>.dSYM
-To select the older STABS debug information format (where debug information is embedded in the kernel.development.unstripped image), set the BUILD_STABS environment variable.
+- the source tree layout
+- required directories and files
+- host environment and tool availability
+- SDK awareness and Darwin assumptions
+- compatibility metadata
+- device support reporting
+- reliability profile and update policy validation
+
+The doctor script is deliberately conservative and read-only. It reports warnings for optional capabilities and failures for conditions that make the requested workflow unreliable.
+
+### 3. Compatibility and capability model
+
+Files:
+
+- `include/xnu++/compat.h`
+- `include/xnu++/security.h`
+- `include/xnu++/device.h`
+- `include/xnu++/bus.h`
+- `include/xnu++/reliability.h`
+- `include/xnu++/features.h`
+- `include/xnu++/update.h`
+- `include/xnu++/recovery.h`
+- `include/xnu++/quota.h`
+- `include/xnu++/isolation.h`
+- `include/xnu++/diagnostics.h`
+
+These provide provider-neutral capability checks and policy contracts. They allow the system to detect supported features without hard-coding Apple-only platform strings.
+
+### 4. Security and protection systems
+
+The security layer provides fail-closed semantics and is intentionally stricter than default permissive behavior.
+
+Security features include:
+
+- secure boot policy
+- measured boot verification
+- signed driver enforcement
+- update-signature validation
+- rollback protection
+- least privilege enforcement
+- IOMMU requirement
+- authenticated offline recovery
+- audit of privileged operations
+- deny-by-default policy for unknown devices and unknown capabilities
+
+Relevant files:
+
+- `include/xnu++/security.h`
+- `distribution/security.profile`
+- `tools/xnu++/support-matrix.json`
+
+Security contract behavior:
+
+- Unknown primitives must not be accepted silently.
+- Malformed requests are denied.
+- Security-sensitive provider failover is not allowed.
+- A recovery path is mandatory before a system may claim a secure state.
+
+### 5. Device support and platform abstraction
+
+This is one of the most important additions to xnu++.
+
+Files:
+
+- `include/xnu++/device.h`
+- `include/xnu++/bus.h`
+- `doc/xnu++_platform.md`
+- `distribution/default.profile`
+
+Device support model:
+
+- provider-neutral device IDs and compatibility strings
+- state tracking for detach/discover/attach/suspend/fail
+- resource descriptors for MMIO, I/O, IRQ, DMA, clocks, and resets
+- explicit bus abstraction
+- safe lifecycle behavior and fail-closed handling
+
+Supported and planned classes include:
+
+- PCIe
+- virtio
+- USB
+- I2C
+- SPI
+- UART
+- GPIO
+- watchdog
+- NVMe
+- AHCI
+- virtio-block
+- virtio-net
+- Ethernet
+- Wi-Fi
+- framebuffer/display
+- input devices
+- audio
+- sensors
+
+The device model does not assume Apple firmware or Apple-only boot paths. Devices must declare requirements and compatibility explicitly, and a distribution must reject unverified devices rather than silently accepting them.
+
+### 6. Reliability and recovery model
+
+Files:
+
+- `include/xnu++/reliability.h`
+- `include/xnu++/features.h`
+- `include/xnu++/update.h`
+- `include/xnu++/recovery.h`
+- `include/xnu++/quota.h`
+- `include/xnu++/isolation.h`
+- `include/xnu++/diagnostics.h`
+- `distribution/reliability.profile`
+- `distribution/update.policy`
+- `distribution/recovery.policy`
+
+These bring xnu++ much closer to a serious production-safe layer.
+
+Key capabilities:
+
+- provider health monitoring and quarantine
+- failover policy for safe services only
+- rollbacks for failed updates
+- quota enforcement for CPU, memory, I/O, and handles
+- service isolation and least-privilege enforcement
+- structured diagnostics with severity levels
+- checkpoint-informed recovery planning
+- signed offline recovery and authenticated state reset
+
+### 7. Distribution profiles and policy files
+
+Files:
+
+- `distribution/default.profile`
+- `distribution/security.profile`
+- `distribution/reliability.profile`
+- `distribution/update.policy`
+- `distribution/recovery.policy`
+
+These create a policy-based distribution model instead of relying on Apple-specific assumptions.
+
+Profiles define required capabilities such as:
+
+- secure boot
+- measured boot
+- signed updates
+- rollback protection
+- offline recovery
+- IOMMU
+- service isolation
+- capability registry
+- explicit hardware support list
+
+## Device support matrix
+
+xnu++ uses capability-based support reporting. A device is not considered supported just because a bus exists. Support is split into explicit statuses:
+
+- supported
+- interface-defined
+- planned
+- emulator-tested
+- provider-specific
+- unsupported
+
+Example matrix categories:
+
+- virtio block and networking: emulator-tested
+- PCIe and USB: interface-defined
+- I2C and SPI: interface-defined
+- NVMe, Ethernet, audio, Wi-Fi, display backends: planned or provider-defined
+
+The system is designed to deny unknown or unverified devices by policy.
+
+## Professional guidance: semi-independent but extendable
+
+xnu++ is designed so that it can be fully independent later without forcing a disruptive rewrite now.
+
+That future path includes:
+
+- native xnu++ driver model
+- native distributed boot and recovery infrastructure
+- self-hosted update pipeline
+- fully provider-neutral security and device stacks
+- a stronger kernel provider that is fully independent of Apple firmware assumptions
+
+At the same time, the project remains safe and realistic:
+
+- it does not claim to support unsupported hardware
+- it does not guess platform capabilities
+- it does not silently bypass security checks
+- it does not advertise features without tests or documentation
+
+## Practical usage
+
+From the repository root, you can run:
 
 ```sh
-export BUILD_STABS=1
-make
+sh tools/xnu++/doctor.sh
 ```
 
+For machine-readable output:
 
-## Building KernelCaches
+```sh
+sh tools/xnu++/doctor.sh --format json
+```
 
-To test the xnu kernel, you need to build a kernelcache that links the kexts and
-kernel together into a single bootable image.
-To build a kernelcache you can use the following mechanisms:
+Validation:
 
-* Using automatic kernelcache generation with `kextd`.
-  The kextd daemon keeps watching for changing in `/System/Library/Extensions` directory.
-  So you can setup new kernel as
+```sh
+sh tools/xnu++/validate.sh
+```
 
-    ```text
-    cp BUILD/obj/DEVELOPMENT/X86_64/kernel.development /System/Library/Kernels/
-    touch /System/Library/Extensions
-    ps -e | grep kextd
-    ```
+Reliability validation:
 
-* Manually invoking `kextcache` to build new kernelcache.
+```sh
+sh tools/xnu++/validate-reliability.sh
+```
 
-    ```text
-    kextcache -q -z -a x86_64 -l -n -c /var/tmp/kernelcache.test -K /var/tmp/kernel.test /System/Library/Extensions
-    ```
+Profile validation:
 
+```sh
+sh tools/xnu++/validate-profile.sh
+```
 
-## Booting a KernelCache on a Target machine
+## Repository structure
 
-The development kernel and iBoot supports configuring boot arguments so that we can safely boot into test kernel and, if things go wrong, safely fall back to previously used kernelcache.
-Following are the steps to get such a setup:
-
-1. Create kernel cache using the kextcache command as `/kernelcache.test`
-2. Copy exiting boot configurations to alternate file
-
-    ```sh
-    cp /Library/Preferences/SystemConfiguration/com.apple.Boot.plist /next_boot.plist
-    ```
-
-3. Update the kernelcache and boot-args for your setup
-
-    ```sh
-    plutil -insert "Kernel Cache" -string "kernelcache.test" /next_boot.plist
-    plutil -replace "Kernel Flags" -string "debug=0x144 -v kernelsuffix=test " /next_boot.plist
-    ```
-
-4. Copy the new config to `/Library/Preferences/SystemConfiguration/`
-
-    ```sh
-    cp /next_boot.plist /Library/Preferences/SystemConfiguration/boot.plist
-    ```
-
-5. Bless the volume with new configs.
-
-    ```text
-    sudo -n bless  --mount / --setBoot --nextonly --options "config=boot"
-    ```
-
-   The `--nextonly` flag specifies that use the `boot.plist` configs only for one boot.
-   So if the kernel panic's you can easily power reboot and recover back to original kernel.
-
-
-## Creating tags and cscope
-
-Set up your build environment and from the top directory, run:
-
-    make tags     # this will build ctags and etags on a case-sensitive volume, only ctags on case-insensitive
-    make TAGS     # this will build etags
-    make cscope   # this will build cscope database
-
-## Installing New Header Files from XNU
-
-XNU installs header files at the following locations -
-
-    a. $(DSTROOT)/System/Library/Frameworks/Kernel.framework/Headers
-    b. $(DSTROOT)/System/Library/Frameworks/Kernel.framework/PrivateHeaders
-    c. $(DSTROOT)/usr/include/
-    d. $(DSTROOT)/usr/local/include/
-    e. $(DSTROOT)/System/DriverKit/usr/include/
-    f. $(DSTROOT)/System/Library/Frameworks/IOKit.framework/Headers
-    g. $(DSTROOT)/System/Library/Frameworks/IOKit.framework/PrivateHeaders
-    h. $(DSTROOT)/System/Library/Frameworks/System.framework/PrivateHeaders
-
-`Kernel.framework` is used by kernel extensions.\
-The `System.framework`, `/usr/include` and `/usr/local/include` are used by user level applications. \
-`IOKit.framework` is used by IOKit userspace clients. \
-`/System/DriverKit/usr/include` is used by userspace drivers. \
-The header files in framework's `PrivateHeaders` are only available for **Apple Internal Development**.
-
-The directory containing the header file should have a Makefile that
-creates the list of files that should be installed at different locations.
-If you are adding the first header file in a directory, you will need to
-create Makefile similar to `xnu/bsd/sys/Makefile`.
-
-Add your header file to the correct file list depending on where you want
-to install it. The default locations where the header files are installed
-from each file list are -
-
-    a. `DATAFILES` : To make header file available in user level -
-       `$(DSTROOT)/usr/include`
-       `$(DSTROOT)/System/Library/Frameworks/System.framework/PrivateHeaders`
-
-    b. `DRIVERKIT_DATAFILES` : To make header file available to DriverKit userspace drivers -
-       `$(DSTROOT)/System/DriverKit/usr/include`
-
-    c. `PRIVATE_DATAFILES` : To make header file available to Apple internal in
-       user level -
-       `$(DSTROOT)/System/Library/Frameworks/System.framework/PrivateHeaders`
-
-    d. `EMBEDDED_PRIVATE_DATAFILES` : To make header file available in user
-       level for macOS as `EXTRA_DATAFILES`, but Apple internal in user level
-       for embedded OSes as `EXTRA_PRIVATE_DATAFILES` -
-       `$(DSTROOT)/usr/include` (`EXTRA_DATAFILES`)
-       `$(DSTROOT)/usr/local/include` (`EXTRA_PRIVATE_DATAFILES`)
-
-    e. `KERNELFILES` : To make header file available in kernel level -
-       `$(DSTROOT)/System/Library/Frameworks/Kernel.framework/Headers`
-       `$(DSTROOT)/System/Library/Frameworks/Kernel.framework/PrivateHeaders`
-
-    f. `PRIVATE_KERNELFILES` : To make header file available to Apple internal
-       for kernel extensions -
-       `$(DSTROOT)/System/Library/Frameworks/Kernel.framework/PrivateHeaders`
-
-    g. `MODULEMAPFILES` : To make module map file available in user level -
-       `$(DSTROOT)/usr/include`
-
-    h. `PRIVATE_MODULEMAPFILES` : To make module map file available to Apple
-       internal in user level -
-       `$(DSTROOT)/usr/local/include`
-
-    i. `LIBCXX_DATAFILES` : To make header file available to in-kernel libcxx clients:
-       `$(DSTROOT)/System/Library/Frameworks/Kernel.framework/PrivateHeaders/kernel_sdkroot`
-
-    j. `EXCLAVEKIT_DATAFILES` : To make header file available to Apple internal
-       ExclaveKit SDK -
-       `$(DSTROOT)/System/ExclaveKit/usr/include`
-
-    k. `EXCLAVECORE_DATAFILES` : To make header file available to Apple internal
-       ExclaveCore SDK -
-       `$(DSTROOT)/System/ExclaveCore/usr/include`
-
-The Makefile combines the file lists mentioned above into different
-install lists which are used by build system to install the header files. There
-are two types of install lists: machine-dependent and machine-independent.
-These lists are indicated by the presence of `MD` and `MI` in the build
-setting, respectively. If your header is architecture-specific, then you should
-use a machine-dependent install list (e.g. `INSTALL_MD_LIST`). If your header
-should be installed for all architectures, then you should use a
-machine-independent install list (e.g. `INSTALL_MI_LIST`).
-
-If the install list that you are interested does not exist, create it
-by adding the appropriate file lists.  The default install lists, its
-member file lists and their default location are described below -
-
-a. `INSTALL_MI_LIST`, `INSTALL_MODULEMAP_MI_LIST` : Installs header and module map
-    files to a location that is available to everyone in user level.
-    Locations -
-        $(DSTROOT)/usr/include
-    Definition -
-        INSTALL_MI_LIST = ${DATAFILES}
-        INSTALL_MODULEMAP_MI_LIST = ${MODULEMAPFILES}
-
-b. `INSTALL_DRIVERKIT_MI_LIST` : Installs header file to a location that is
-    available to DriverKit userspace drivers.
-    Locations -
-        $(DSTROOT)/System/DriverKit/usr/include
-    Definition -
-        INSTALL_DRIVERKIT_MI_LIST = ${DRIVERKIT_DATAFILES}
-
-c.  `INSTALL_MI_LCL_LIST`, `INSTALL_MODULEMAP_MI_LCL_LIST` : Installs header and
-    module map files to a location that is available for Apple internal in user level.
-    Locations -
-        $(DSTROOT)/usr/local/include
-    Definition -
-        INSTALL_MI_LCL_LIST =
-        INSTALL_MODULEMAP_MI_LCL_LIST = ${PRIVATE_MODULEMAPFILES}
-
-d. `INSTALL_IF_MI_LIST` : Installs header file to location that is available
-    to everyone for IOKit userspace clients.
-    Locations -
-        $(DSTROOT)/System/Library/Frameworks/IOKit.framework/Headers
-    Definition -
-        INSTALL_IF_MI_LIST = ${DATAFILES}
-
-e. `INSTALL_IF_MI_LCL_LIST` : Installs header file to location that is
-    available to Apple internal for IOKit userspace clients.
-    Locations -
-        $(DSTROOT)/System/Library/Frameworks/IOKit.framework/PrivateHeaders
-    Definition -
-        INSTALL_IF_MI_LCL_LIST = ${DATAFILES} ${PRIVATE_DATAFILES}
-
-f.  `INSTALL_SF_MI_LCL_LIST` : Installs header file to a location that is available
-    for Apple internal in user level.
-    Locations -
-        $(DSTROOT)/System/Library/Frameworks/System.framework/PrivateHeaders
-    Definition -
-        INSTALL_SF_MI_LCL_LIST = ${DATAFILES} ${PRIVATE_DATAFILES}
-
-g. `INSTALL_KF_MI_LIST` : Installs header file to location that is available
-    to everyone for kernel extensions.
-    Locations -
-        $(DSTROOT)/System/Library/Frameworks/Kernel.framework/Headers
-    Definition -
-        INSTALL_KF_MI_LIST = ${KERNELFILES}
-
-h. `INSTALL_KF_MI_LCL_LIST` : Installs header file to location that is
-    available for Apple internal for kernel extensions.
-    Locations -
-        $(DSTROOT)/System/Library/Frameworks/Kernel.framework/PrivateHeaders
-    Definition -
-        INSTALL_KF_MI_LCL_LIST = ${KERNELFILES} ${PRIVATE_KERNELFILES}
-
-i. `EXPORT_MI_LIST` : Exports header file to all of xnu (bsd/, osfmk/, etc.)
-    for compilation only. Does not install anything into the SDK.
-    Definition -
-        EXPORT_MI_LIST = ${KERNELFILES} ${PRIVATE_KERNELFILES}
-
-j. `INSTALL_KF_LIBCXX_MI_LIST` : Installs header file for in-kernel libc++ support.
-    Locations -
-        $(DSTROOT)/System/Library/Frameworks/Kernel.framework/PrivateHeaders/kernel_sdkroot
-    Definition -
-        INSTALL_KF_LIBCXX_MI_LIST = ${LIBCXX_DATAFILES}
-
-k. `INSTALL_EXCLAVEKIT_MI_LIST` : Installs header file to location that is
-    available for Apple internal for ExclaveKit.
-    Locations -
-        $(DSTROOT)/System/ExclaveKit/usr/include
-    Definition -
-        INSTALL_EXCLAVEKIT_MI_LIST = ${EXCLAVEKIT_DATAFILES}
-
-l. `INSTALL_EXCLAVECORE_MI_LIST` : Installs header file to location that is
-    available for Apple internal for ExclaveCore.
-    Locations -
-        $(DSTROOT)/System/ExclaveCore/usr/include
-    Definition -
-        INSTALL_EXCLAVECORE_MI_LIST = ${EXCLAVECORE_DATAFILES}
-
-If you want to install the header file in a sub-directory of the paths
-described in (1), specify the directory name using two variables
-`INSTALL_MI_DIR` and `EXPORT_MI_DIR` as follows -
+A representative project structure is:
 
 ```text
-INSTALL_MI_DIR = dirname
-EXPORT_MI_DIR = dirname
+.
+├── README.md
+├── XNU++_README.md
+├── XNU++_VERSION
+├── Makefile
+├── APPLE_LICENSE
+├── EXTERNAL_HEADERS/
+├── SETUP/
+├── bsd/
+├── config/
+├── doc/
+├── include/
+├── distribution/
+├── tools/
+├── osfmk/
+├── pexpert/
+├── security/
+├── tests/
+└── tools/xnu++/
 ```
 
-If you want to install the module map file in a sub-directory, specify the
-directory name using the variable `INSTALL_MODULEMAP_MI_DIR` as follows -
+## Operational principles
 
-```text
-INSTALL_MODULEMAP_MI_DIR = dirname
-```
+The xnu++ layer enforces a set of principles that are crucial for reliability and safety:
 
-A single header file can exist at different locations using the steps
-mentioned above.  However it might not be desirable to make all the code
-in the header file available at all the locations.  For example, you
-want to export a function only to kernel level but not user level.
+- Security-sensitive operations never fail over to an untrusted provider.
+- Unknown required capabilities are denied.
+- Unsupported hardware and missing firmware paths are treated as explicit failures, not assumptions.
+- Optional features degrade gracefully with a report.
+- Updates are signed, verified, and rollback-capable.
+- Diagnostics are structured and auditable.
+- Device support is declared and validated instead of guessed.
 
- You can use C language's pre-processor directive (#ifdef, #endif, #ifndef)
- to control the text generated before a header file is installed.  The kernel
- only includes the code if the conditional macro is TRUE and strips out
- code for FALSE conditions from the header file.
+## Final statement
 
- Some pre-defined macros and their descriptions are -
+xnu++ is not a lie, a fake replacement, or an unrealistic claim. It is a serious engineering layer that strengthens XNU-derived workflows by making them more portable, safer, more diagnosable, and more capable of future independence.
 
-1. `PRIVATE` : If defined, enclosed definitions are considered System
-Private Interfaces. These are visible within xnu and
-exposed in user/kernel headers installed within the AppleInternal
-"PrivateHeaders" sections of the System and Kernel frameworks.
-2. `KERNEL_PRIVATE` : If defined, enclosed code is available to all of xnu
-kernel and Apple internal kernel extensions and omitted from user
-headers.
-3. `BSD_KERNEL_PRIVATE` : If defined, enclosed code is visible exclusively
-within the xnu/bsd module.
-4. `MACH_KERNEL_PRIVATE`: If defined, enclosed code is visible exclusively
-within the xnu/osfmk module.
-5. `XNU_KERNEL_PRIVATE`: If defined, enclosed code is visible exclusively
-within xnu.
-6. `KERNEL` :  If defined, enclosed code is available within xnu and kernel
-    extensions and is not visible in user level header files.  Only the
-    header files installed in following paths will have the code -
+It combines:
 
-    ```text
-    $(DSTROOT)/System/Library/Frameworks/Kernel.framework/Headers
-    $(DSTROOT)/System/Library/Frameworks/Kernel.framework/PrivateHeaders
-    ```
+- upstream XNU stability
+- explicit compatibility detection
+- provider-neutral device and bus contracts
+- independent security and recovery policy
+- structured update and rollback handling
+- robust diagnostics and support matrices
+- future-ready independence without reckless abandonment of proven kernel technology
 
-7. `DRIVERKIT`: If defined, enclosed code is visible exclusively in the
-DriverKit SDK headers used by userspace drivers.
-8. `EXCLAVEKIT`: If defined, enclosed code is visible exclusively in the
-ExclaveKit SDK headers.
-9. `EXCLAVECORE`: If defined, enclosed code is visible exclusively in the
-ExclaveCore SDK headers.
-10. `MODULES_SUPPORTED` If defined, enclosed code is visible exclusively
-in locations that support modules/Swift (i.e. not System or Kernel frameworks).
-
-## VM header file name convention
-The VM headers follow the following naming conventions:
-* `*_internal.h` headers contain components of the VM subsystem only for use by VM code.
-* `*_xnu.h` headers contain components of the VM subsystem only for use by other xnu code.
-* `*.h` headers contain components of the VM subsystem exported to kexts.
-* `vm_iokit.h` header contains components of the VM subsystem exported to the iokit subsystem.
-* `vm_ubc.h` header contains components of the VM subsystem exported to the ubc subsystem.
-
-
-## Module map file name convention
-
-In the simple case, a subdirectory of `usr/include` or `usr/local/include`
-can be represented by a standalone module. Where this is the case, set
-`INSTALL_MODULEMAP_MI_DIR` to `INSTALL_MI_DIR` and install a `module.modulemap`
-file there. `module.modulemap` is used even for private modules in
-`usr/local/include`; `module.private.modulemap` is not used. Caveat: in order
-to stay in the simple case, the module name needs to be exactly the same as
-the directory name. If that's not possible, then the following method will
-need to be applied.
-
-`xnu` contributes to the modules defined in CoreOSModuleMaps by installing
-module map files that are sourced from `usr/include/module.modulemap` and
-`usr/local/include/module.modulemap`. The naming convention for the `xnu`
-module map files are as follows.
-
-a. Ideally the module map file covers an entire directory. A module map
-    file covering `usr/include/a/b/c` would be named `a_b_c.modulemap`.
-    `usr/local/include/a/b/c` would be `a_b_c_private.modulemap`.
-b. Some headers are special and require their own module. In that case,
-    the module map file would be named after the module it defines.
-    A module map file defining the module `One.Two.Three` would be named
-    `one_two_three.modulemap`.
-
-## Conditional Compilation
-
-`xnu` offers the following mechanisms for conditionally compiling code:
-
-1. *CPU Characteristics* If the code you are guarding has specific
-    characterstics that will vary only based on the CPU architecture being
-    targeted, use this option. Prefer checking for features of the
-    architecture (e.g. `__LP64__`, `__LITTLE_ENDIAN__`, etc.).
-2. *New Features* If the code you are guarding, when taken together,
-    implements a feature, you should define a new feature in `config/MASTER`
-    and use the resulting `CONFIG` preprocessor token (e.g. for a feature
-    named `config_virtual_memory`, check for `#if CONFIG_VIRTUAL_MEMORY`).
-    This practice ensures that existing features may be brought to other
-    platforms by simply changing a feature switch.
-3. *Existing Features* You can use existing features if your code is
-    strongly tied to them (e.g. use `SECURE_KERNEL` if your code implements
-    new functionality that is exclusively relevant to the trusted kernel and
-    updates the definition/understanding of what being a trusted kernel means).
-
-It is recommended that you avoid compiling based on the target platform. `xnu`
-does not define the platform macros from `TargetConditionals.h`
-(`TARGET_OS_OSX`, `TARGET_OS_IOS`, etc.).
-
-
-## Debugging XNU
-
-By default, the kernel reboots in the event of a panic.
-This behavior can be overriden by the `debug` boot-arg -- `debug=0x14e` will cause a panic to wait for a debugger to attach.
-To boot a kernel so it can be debugged by an attached machine, override the `kdp_match_name` boot-arg with the appropriate `ifconfig` interface.
-Ethernet, Thunderbolt, and serial debugging are supported, depending on the hardware.
-
-Use LLDB to debug the kernel:
-
-```text
-xcrun -sdk macosx lldb <path-to-unstripped-kernel>
-(lldb) gdb-remote [<host-ip>:]<port>
-```
-
-The debug info for the kernel (dSYM) comes with a set of macros to support kernel debugging.
-To load these macros automatically when attaching to the kernel, add the following to `~/.lldbinit`:
-
-```text
-settings set target.load-script-from-symbol-file true
-```
-
-`tools/lldbmacros` contains the source for these commands.
-See the README in that directory for their usage, or use the built-in LLDB help with:
-
-```text
-(lldb) help showcurrentstacks
-```
-
+This makes xnu++ not just a patch set, but a structured, extensible platform architecture for a more reliable and open operating system story around XNU.
