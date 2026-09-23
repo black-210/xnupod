@@ -1,0 +1,8 @@
+# xnu++ recovery policy
+schema = 1
+normal_failure = safe-mode
+provider_failure = quarantine-provider
+security_failure = signed-offline-only
+max_boot_attempts = 3
+preserve_diagnostics = yes
+clear_state = authenticated-only

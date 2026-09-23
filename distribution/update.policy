@@ -1,0 +1,8 @@
+# xnu++ update policy
+schema = 1
+verification = signature-and-digest
+commit = atomic
+rollback = bounded-and-tested
+minimum_generation = required
+security_failure = abort-and-recover
+untrusted_provider = never-commit
