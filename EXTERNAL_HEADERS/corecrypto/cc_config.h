@@ -818,3 +818,11 @@
 #endif
 
 #endif /* _CORECRYPTO_CC_CONFIG_H_ */
+#include "__config"
+ #if !defined(CORECRYPTO_CC_CONFIG_H_)
+    #else
+     #error "Duplicate corecrypto configuration header"
+     #endif
+ #if Endianess != LittleEndian
+     #error "corecrypto requires little-endian"
+     #endif

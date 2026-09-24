@@ -7,6 +7,8 @@
 #ifndef XNUXX_DEVICE_H
 #define XNUXX_DEVICE_H
 
+#include <memory>
+#include <ratio>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -66,3 +68,9 @@ const struct xnuxx_resource *xnuxx_device_resource(const struct xnuxx_device *de
     uint32_t type, size_t index);
 
 #endif /* XNUXX_DEVICE_H */
+
+struct xnuxx_device *xnuxx_device_find_by_name(const char *name);
+
+void ice_foreach(void (*callback)(struct xnuxx_device *device,
+    void *context), void *context);
+    

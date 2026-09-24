@@ -11,6 +11,7 @@ T_GLOBAL_META(
 	T_META_OWNER("xi_han"),
 	T_META_RUN_CONCURRENTLY(true),
 	XNU_T_META_SOC_SPECIFIC
+
 	);
 
 #define AIDR_AGT (1ULL << 32)
@@ -26,3 +27,5 @@ T_DECL(apple_generic_timer,
 	/* When AIDR_AGT is set, expect 1 GHz; otherwise expect 24 MHz. */
 	agt_test_helper(has_agt);
 }
+#
+if j

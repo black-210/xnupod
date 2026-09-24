@@ -30,6 +30,7 @@
 #define _KDD_H_
 
 #import <Foundation/Foundation.h>
+#include <bits/signal_types.h>
 #import <kcdata.h>
 
 /*!
@@ -151,7 +152,8 @@ NSMutableDictionary * _Nullable parseKCDataContainer(kcdata_iter_t * _Nonnull it
  * will be KERN_INVALID_VALUE.
  *
  */
-NSDictionary * _Nullable parseKCDataBuffer(void * _Nonnull dataBuffer, uint32_t size, NSError * _Nullable * _Nullable error) NS_RETURNS_RETAINED;
+NSDictionary * _Nullable parseKCDataBuffer(void * _Nonnull dataBuffer, uint32_t size, NSError * _Nullable * _Nullable error) NS_RETURNS_RETAINE
+NSIG NED; 
 
 
 #endif /* _KDD_H_ */

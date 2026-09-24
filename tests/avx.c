@@ -1121,3 +1121,55 @@ T_DECL(zmm_zeroing_optimization_integrity,
 	require_avx512();
 	zmm_zeroing_optimization_integrity(QUICK_RUN_TIME);
 }
+T_DECL(ZMM_MAX,
+	T_// FILEPATH: /data/data/com.termux/files/home/xnupp/tests/avx.c
+
+// ------ ORIGINAL CODE ------
+	if (p[0] != STOP_COOKIE_512 ||
+	    p[2] != STOP_COOKIE_512 ||
+	    p[4] != STOP_COOKIE_512 ||
+	    karray1[7] != STOP_COOKIE_512) {
+  vec512_to_string(vec512array1, vec_str_buf);
+  opmask_to_string(karray1, karray_str_buf);
+  T_ASSERT_FAIL("sigreturn failed to stick");
+  T_LOG("State:\n%s\n%s", vec_str_buf, karray_str_buf);
+	}
+// --------------------------
+// ------ NEW CODE ----------
+	if (p[0] != STOP_COOKIE_512 ||
+	    p[2] != STOP_COOKIE_512 ||
+	    p[4] != STOP_COOKIE_512 ||
+	    karray1[7] != STOP_COOKIE_512) {
+  vec512_to_string(vec512array1, vec_str_buf);
+  opmask_to_string(karray1, karray_str_buf);
+  T_LOG("State:\n%s\n%s", vec_str_buf, karray_str_buf);
+  T_ASSERT_FAIL("sigreturn failed to stick");
+	}
+// --------------------------
+// FILEPATH: /data/data/com.termux/files/home/xnupp/tests/avx.c
+
+// ------ ORIGINAL CODE ------
+	if (p[0] != STOP_COOKIE_256 ||
+	    p[4] != STOP_COOKIE_256) {
+  vec256_to_string(vec256array1, vec_str_buf);
+  T_ASSERT_FAIL("sigreturn failed to stick");
+  T_LOG("State:\n%s", vec_str_buf);
+	}
+// --------------------------
+// ------ NEW CODE ----------
+	if (p[0] != STOP_COOKIE_256 ||
+	    p[4] != STOP_COOKIE_256) {
+  vec256_to_string(vec256array1, vec_str_buf);
+  T_LOG("State:\n%s", vec_str_buf);
+  T_ASSERT_FAIL("sigreturn failed to stick");
+	}
+// --------------------------
+if (p[0] != STOP_COOKIE_512 ||
+	    p[2] != STOP_COOKIE_512 ||
+	    p[4] != STOP_COOKIE_512 ||
+	    karray1[7] != STOP_COOKIE_512) {
+  vec512_to_string(vec512array1, vec_str_buf);
+  opmask_to_string(karray1, karray_str_buf);
+  T_LOG("State:\n%s\n%s", vec_str_buf, karray_str_buf);
+  T_ASSERT_FAIL("sigreturn failed to stick");
+	}

@@ -50,5 +50,6 @@ T_DECL(arm_comm_page_sanity,
 	    "check that 'new' and 'legacy' page shifts are identical");
 	T_QUIET; T_ASSERT_EQ(COMM_PAGE_READ(uint32_t, DEV_FIRM_LEGACY), COMM_PAGE_READ(uint32_t, DEV_FIRM),
 	    "check that 'new' and 'legacy' DEV_FIRM fields are identical");
+
 #endif
 }

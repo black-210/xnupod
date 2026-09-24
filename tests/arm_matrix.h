@@ -54,5 +54,7 @@ struct arm_matrix_operations {
 };
 
 extern const struct arm_matrix_operations sme_operations;
+struct arm_matrix_operations *get_arm_matrix_operations(void);
+
 
 #endif /* __ARM_MATRIX_H */

@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "activeSessionId": "950c7d95-5cad-47e2-86b5-cb0e0deae0cb",
+  "sessions": [
+    {
+      "id": "950c7d95-5cad-47e2-86b5-cb0e0deae0cb",
+      "title": "New session",
+      "createdAt": "2026-09-24T09:11:01.974Z",
+      "updatedAt": "2026-09-24T09:11:01.974Z",
+      "messages": []
+    },
+    {
+      "id": "2d5e82d1-cd8d-41c8-9400-d46ade61b25a",
+      "title": "New session",
+      "createdAt": "2026-09-24T09:00:38.585Z",
+      "updatedAt": "2026-09-24T09:00:38.585Z",
+      "messages": []
+    }
+  ]
+}

@@ -313,7 +313,15 @@
    pointer checks, so do nothing. */
 #define __ptrcheck_unavailable
 #define __ptrcheck_unavailable_r(REPLACEMENT)
+#define __unsafe_late_const
+#define __ptrcheck_unavailable_r(REPLACEMENT)
 
 #endif /* __has_ptrcheck */
 
+#endif /* __PTRCHECK */
+#define __PTRCHECK_HT
 #endif /* __PTRCHECK_H */
+if (__has_include_next(<stdatomic.h>)){
+   #include_next <stdatomic.h>
+   /* __CLANG_STDATOMIC_H guard defined */
+}

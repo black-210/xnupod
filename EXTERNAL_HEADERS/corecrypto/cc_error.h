@@ -190,7 +190,11 @@ enum {
     CCEC_COMPACT_POINT_ENCODING_ERROR = -172,
 
     CCERR_NOT_SUPPORTED = -173,
-    
+    CCERR_NOT_IMPLEMENTED = -174,
+    CCERR_INTEGRITY_FAILURE = -175,
+    CCERR_INVALID_CALL_SEQUENCE = -176,
+    CCERR_INVALID_KEY = -177,
+
     // Always add error codes above this line, and always keep
     // their value greater than the value of CCERR_MIN.
     CCERR_MIN = -255,

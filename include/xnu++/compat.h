@@ -2,6 +2,7 @@
 #define XNUXX_COMPAT_H
 
 /* Provider-neutral feature probes. Values are supplied by the provider. */
+#include <stdexcept>
 #define XNUXX_COMPAT_API_VERSION 1u
 #define XNUXX_CAP_MACH_IPC          (1ULL << 0)
 #define XNUXX_CAP_BSD_SYSCALLS     (1ULL << 1)
@@ -18,5 +19,10 @@ struct xnuxx_capabilities { unsigned long long bits; unsigned int api_version; }
 static inline int xnuxx_has_capability(const struct xnuxx_capabilities *c, unsigned long long bit) {
     return c != 0 && c->api_version == XNUXX_COMPAT_API_VERSION && (c->bits & bit) != 0;
 }
-
+std::length_error xnuxx_unsupported_capability(const char *cap_name);
+static inline void xnuxx_require_capability(const struct xnuxx_capabilities *c, unsigned long long bit, const char *cap_name) {
+    if (!xnuxx_has_capability(c, bit)) {
+        throw xnuxx_unsupported_capability(cap_name);
+    }
+}
 #endif

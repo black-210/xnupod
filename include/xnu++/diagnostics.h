@@ -12,5 +12,7 @@ typedef int (*xnuxx_diagnostic_sink)(const struct xnuxx_diagnostic *, void *);
 int xnuxx_diagnostics_subscribe(xnuxx_diagnostic_sink, void *);
 int xnuxx_diagnostics_emit(const struct xnuxx_diagnostic *);
 int xnuxx_diagnostics_unsubscribe(xnuxx_diagnostic_sink, void *);
+int xnuxx_diagnostics_emitf(enum xnuxx_diagnostic_severity severity, const char *component, const char *format, ...);
+enum xnuxx_diagnostic_severity xnuxx_diagnostics_get_severity(const struct xnuxx_diagnostic *);
 
 #endif

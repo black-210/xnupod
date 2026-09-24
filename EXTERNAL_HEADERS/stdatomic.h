@@ -204,6 +204,13 @@ void atomic_flag_clear_explicit(volatile atomic_flag *, memory_order);
 
 #define atomic_flag_clear(object) __c11_atomic_store(&(object)->_Value, 0, __ATOMIC_SEQ_CST)
 #define atomic_flag_clear_explicit(object, order) __c11_atomic_store(&(object)->_Value, 0, order)
+#define atomic_flag_test_and_set_explicit(object, order) __c11_atomic_exchange(&(object)->_Value, 1, order)
+if (__has_include_next(<stdatomic.h>)){
+	#include_next <stdatomic.h>
+	/* __CLANG_STDATOMIC_H guard defined */
+}
+#define __CLANG_STDATOMIC_H
+
 
 #ifdef __cplusplus
 }
