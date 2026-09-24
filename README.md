@@ -105,6 +105,7 @@ xnu++ is not intended to simply be a renamed copy of XNU.
 The project is designed around a layered architecture in which existing technologies can act as providers while xnu++ supplies a common platform-oriented interface.
 
 The conceptual model is:
+```
 
 Applications
      │
@@ -127,7 +128,7 @@ Provider Provider        Abstractions
 Mach / BSD / IOKit
 
 This allows the project to evolve without requiring every component to be implemented simultaneously.
-
+```
 ---
 
 Project Goals
@@ -156,6 +157,7 @@ The project also aims to make it possible to build a distribution without placin
 Architecture
 
 The high-level architecture is:
+```
 
 ┌───────────────────────────────────────────────┐
 │                 Applications                  │
@@ -174,7 +176,7 @@ The high-level architecture is:
 ├───────────────────────────────────────────────┤
 │          XNU / Mach / BSD / IOKit             │
 └───────────────────────────────────────────────┘
-
+```
 The architecture is intentionally modular.
 
 ---
@@ -186,7 +188,7 @@ Orange OS is a separate project and repository.
 It is designed as a distribution built on top of xnu++.
 
 The relationship is:
-
+```
 xnu++
   │
   ├── Kernel
@@ -206,7 +208,7 @@ xnu++
           ├── Configuration
           ├── Userspace
           └── Desktop integration
-
+```
 Orange OS does not provide a second kernel.
 
 It uses xnu++ as its underlying platform.
