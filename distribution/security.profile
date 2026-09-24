@@ -8,3 +8,6 @@ rollback_protection = required
 least_privilege = required
 iommu = required
 recovery = signed-offline
+bootloader = xnuxx-c
+bootloader_policy = strict
+bootloader_console = blue-white
