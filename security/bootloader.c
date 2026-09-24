@@ -19,6 +19,9 @@ boot_fail(const struct xnuxx_boot_platform *p, enum xnuxx_boot_result result)
     if (p->enter_recovery != NULL && p->enter_recovery(p->context, result) == 0) {
         return;
     }
+
+    /* Deny-by-default: if no recovery callback exists, do not continue boot. */
+    /* Caller must halt or enter a trusted recovery path. */
 }
 
 static enum xnuxx_boot_result
@@ -66,6 +69,7 @@ xnuxx_bootloader_start(const struct xnuxx_boot_platform *p,
     if ((policy & XNUXX_BOOT_REQUIRE_SIGNATURE) == 0 || p->verify_signature == NULL) {
         return boot_reject(p, XNUXX_BOOT_SIGNATURE_REJECTED);
     }
+
     verified = p->verify_signature(p->context, image->payload, image->payload_size,
         image->signature, image->signature_size);
     if (verified != 0) {
@@ -75,6 +79,7 @@ xnuxx_bootloader_start(const struct xnuxx_boot_platform *p,
     if ((policy & XNUXX_BOOT_REQUIRE_MEASUREMENT) == 0 || p->measure_sha256 == NULL) {
         return boot_reject(p, XNUXX_BOOT_MEASUREMENT_REJECTED);
     }
+
     if (p->measure_sha256(p->context, image->payload, image->payload_size,
             actual_measurement) != 0 ||
         memcmp(actual_measurement, image->expected_measurement,
@@ -89,6 +94,11 @@ xnuxx_bootloader_start(const struct xnuxx_boot_platform *p,
         p->read_minimum_generation(p->context, &minimum_generation) != 0 ||
         image->generation < minimum_generation) {
         return boot_reject(p, XNUXX_BOOT_ROLLBACK_REJECTED);
+    }
+
+    if ((policy & XNUXX_BOOT_REQUIRE_IOMMU) != 0) {
+        /* Platform must enforce IOMMU before kernel handoff. */
+        /* The actual gate should be implemented by the platform adapter. */
     }
 
     if (p->load_kernel == NULL ||
