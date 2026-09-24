@@ -3,12 +3,12 @@
 
 .section .multiboot
 .align 8
+multiboot_header:
 .long MULTIBOOT2_MAGIC
 .long ARCHITECTURE
 .long (multiboot_header_end - multiboot_header)
 .long -(MULTIBOOT2_MAGIC + ARCHITECTURE + (multiboot_header_end - multiboot_header))
 
-/* end tag */
 .word 0
 .word 0
 .long 8
@@ -23,13 +23,14 @@ stack_top:
 
 .section .text
 .global _start
-.type _start, @function
+.type _start,@function
 
 _start:
-    mov $stack_top, %esp
+    movl $stack_top, %esp
+    xorl %ebp, %ebp
 
-    push %ebx
-    push %eax
+    pushl %ebx
+    pushl %eax
 
     call boot_entry
 
@@ -37,3 +38,5 @@ _start:
     cli
     hlt
     jmp 1b
+
+.size _start, .-_start

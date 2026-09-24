@@ -1,6 +1,36 @@
 #include <xnu++/bootloader.h>
 
-#include <string.h>
+static size_t boot_strlen(const char *s)
+{
+    size_t n = 0;
+
+    while (s[n] != '\0')
+        n++;
+
+    return n;
+}
+
+static void boot_memset(void *dst, uint8_t value, size_t n)
+{
+    uint8_t *p = (uint8_t *)dst;
+
+    for (size_t i = 0; i < n; i++)
+        p[i] = value;
+}
+
+static int boot_memcmp(const void *a, const void *b, size_t n)
+{
+    const uint8_t *x = (const uint8_t *)a;
+    const uint8_t *y = (const uint8_t *)b;
+
+    for (size_t i = 0; i < n; i++) {
+        if (x[i] != y[i])
+            return (x[i] < y[i]) ? -1 : 1;
+    }
+
+    return 0;
+}
+
 
 #define ANSI_BLUE_WHITE "\033[44;37m"
 #define ANSI_RESET "\033[0m"
@@ -9,7 +39,7 @@ static void
 boot_log(const struct xnuxx_boot_platform *p, const char *text)
 {
     if (p->write_console != NULL) {
-        p->write_console(p->context, text, strlen(text));
+        p->write_console(p->context, text, boot_strlen(text));
     }
 }
 
@@ -82,12 +112,12 @@ xnuxx_bootloader_start(const struct xnuxx_boot_platform *p,
 
     if (p->measure_sha256(p->context, image->payload, image->payload_size,
             actual_measurement) != 0 ||
-        memcmp(actual_measurement, image->expected_measurement,
+        boot_memcmp(actual_measurement, image->expected_measurement,
             sizeof(actual_measurement)) != 0) {
-        memset(actual_measurement, 0, sizeof(actual_measurement));
+        boot_memset(actual_measurement, 0, sizeof(actual_measurement));
         return boot_reject(p, XNUXX_BOOT_MEASUREMENT_REJECTED);
     }
-    memset(actual_measurement, 0, sizeof(actual_measurement));
+    boot_memset(actual_measurement, 0, sizeof(actual_measurement));
 
     if ((policy & XNUXX_BOOT_REQUIRE_ROLLBACK_PROTECTION) == 0 ||
         p->read_minimum_generation == NULL ||

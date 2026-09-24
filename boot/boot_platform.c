@@ -1,15 +1,27 @@
 #include <xnu++/bootloader.h>
 
+static size_t console_cursor = 0;
+
 static void
 console_write(void *context, const char *text, size_t length)
 {
-    volatile unsigned char *vga = (volatile unsigned char *)0xB8000;
+    volatile unsigned char *vga =
+        (volatile unsigned char *)0xB8000;
 
     (void)context;
 
     for (size_t i = 0; i < length; i++) {
-        vga[i * 2] = (unsigned char)text[i];
-        vga[i * 2 + 1] = 0x1F;
+        if (text[i] == '\n') {
+            console_cursor += 80 - (console_cursor % 80);
+            continue;
+        }
+
+        if (console_cursor >= 80 * 25)
+            break;
+
+        vga[console_cursor * 2] = (unsigned char)text[i];
+        vga[console_cursor * 2 + 1] = 0x1F;
+        console_cursor++;
     }
 }
 
@@ -40,12 +52,18 @@ measure_sha256(void *context,
     uint8_t measurement[32])
 {
     (void)context;
-    (void)payload;
-    (void)payload_size;
 
-    for (int i = 0; i < 32; i++)
+    if (payload == NULL || measurement == NULL || payload_size == 0) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < 32; i++)
         measurement[i] = 0;
 
+    /*
+     * VM bring-up only.
+     * Replace with real SHA-256.
+     */
     return 0;
 }
 
@@ -92,16 +110,21 @@ boot_platform_start(void)
 {
     static const uint8_t measurement[32] = {0};
 
+    static const uint8_t signature_bytes[2] = {'V', 'M'};
+
     static const struct xnuxx_boot_image image = {
         .magic = XNUXX_BOOTLOADER_MAGIC,
         .version = XNUXX_BOOTLOADER_API_VERSION,
         .header_size = sizeof(struct xnuxx_boot_image),
-        .generation = 0,
-        .required_capabilities = 0,
-        .payload = (const void *)0x100000,
+        .generation = 0, /* TODO: read from persistent storage for rollback protection */
+        .required_capabilities =
+            XNUXX_BOOT_CAP_KERNEL_PROVIDER |
+            XNUXX_BOOT_CAP_SECURITY_LAYER |
+            XNUXX_BOOT_CAP_DEVICE_LAYER,
+        .payload = (const void *)(uintptr_t)0x100000,
         .payload_size = 4096,
-        .signature = "VM",
-        .signature_size = 2,
+        .signature = signature_bytes,
+        .signature_size = sizeof(signature_bytes),
         .expected_measurement = measurement
     };
 
