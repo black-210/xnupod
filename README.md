@@ -253,7 +253,7 @@ The kernel does not depend on a normal host operating-system libc.
 Boot Process
 
 The x86-64 boot path currently uses:
-
+```
 Firmware / BIOS
        │
        ▼
@@ -276,7 +276,7 @@ boot_platform_start()
        │
        ▼
    kernel_main()
-
+```
 The 64-bit boot assembly performs the initial CPU transition into long mode.
 
 The boot path includes:
@@ -311,13 +311,13 @@ The Multiboot2 bootloader magic value is validated before continuing.
 The current implementation is being extended toward using Multiboot2 modules for userspace components such as Orange OS.
 
 The intended architecture is:
-
+```
 Multiboot2
    │
    ├── xnu++ kernel
    │
    └── Orange OS init
-
+```
 This provides a clean path toward passing userspace payloads from the boot environment into the platform.
 
 ---
@@ -609,7 +609,7 @@ Device and Bus Architecture
 xnu++ is designed to eventually provide provider-neutral device and bus interfaces.
 
 The intended abstraction is:
-
+```
 Applications
       │
 Userspace
@@ -623,7 +623,7 @@ Bus abstraction
 Provider
       │
 Hardware
-
+```
 The architecture is intended to prevent hardware-specific implementation details from leaking into distribution code.
 
 Planned areas include:
@@ -699,7 +699,7 @@ The long-term goal is to turn this into a proper userspace initialization enviro
 Orange OS Filesystem Layout
 
 The current Orange OS filesystem structure is:
-
+```
 orange-os/
 ├── bin/
 │   └── orange
@@ -753,7 +753,7 @@ orange-os/
 │
 ├── Makefile
 └── README.md
-
+```
 ---
 
 Orange OS Configuration
@@ -891,7 +891,7 @@ DESKTOP="kde-plasma"
 DISPLAY_SERVER="wayland"
 
 The intended architecture is:
-
+```
 xnu++
    ↓
 Orange OS
@@ -901,7 +901,7 @@ Userspace
 Wayland
    ↓
 KDE Plasma
-
+```
 KDE Plasma is not part of the xnu++ kernel.
 
 The desktop environment belongs to the distribution/userspace layer.
@@ -1007,7 +1007,7 @@ ISO Images
 The development environment uses Limine and xorriso to construct bootable ISO images.
 
 The Orange OS development ISO contains:
-
+```
 build/iso/
 ├── boot/
 │   ├── limine/
@@ -1018,11 +1018,11 @@ build/iso/
 │   └── orange_init.elf
 │
 └── limine.conf
-
+```
 The configuration identifies xnu++ as the Multiboot2 kernel and Orange init as a module.
 
 Conceptually:
-
+```
 Orange OS ISO
       │
       ▼
@@ -1032,7 +1032,7 @@ Orange OS ISO
    xnu++ ELF
       │
       └── Orange init module
-
+```
 The current ISO generation is primarily a development and bring-up mechanism.
 
 ---
@@ -1040,7 +1040,7 @@ The current ISO generation is primarily a development and bring-up mechanism.
 Repository Structure
 
 The xnu++ repository currently contains major areas such as:
-
+```
 xnupp/
 ├── boot/
 │   ├── boot_entry.c
@@ -1064,7 +1064,7 @@ xnupp/
 ├── build/
 │
 └── build64/
-
+```
 The exact structure may evolve as additional platform components are introduced.
 
 ---
@@ -1074,7 +1074,7 @@ Development Model
 xnu++ is being developed incrementally.
 
 The development strategy is:
-
+```
 Boot
  ↓
 CPU initialization
@@ -1096,7 +1096,7 @@ Userspace
 Distribution
  ↓
 Desktop
-
+```
 Each stage is intended to provide a usable foundation for the next stage.
 
 The project avoids claiming that planned components already exist.
@@ -1495,7 +1495,7 @@ Relationship to Orange OS
 Orange OS demonstrates how xnu++ can serve as a platform for a complete distribution.
 
 The intended long-term stack is:
-
+```
 ┌─────────────────────────────┐
 │          Applications       │
 ├─────────────────────────────┤
@@ -1511,7 +1511,7 @@ The intended long-term stack is:
 ├─────────────────────────────┤
 │          Hardware           │
 └─────────────────────────────┘
-
+```
 This separation allows Orange OS to evolve independently as a distribution while xnu++ continues to evolve as a platform.
 
 ---
