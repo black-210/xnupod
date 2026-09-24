@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "entries": [
+    {
+      "id": "xnu++-development",
+      "title": "xnu++ development provider",
+      "version": "unbuilt",
+      "provider": "xnu",
+      "verified": false
+    },
+    {
+      "id": "recovery",
+      "title": "Signed offline recovery",
+      "version": "policy-defined",
+      "provider": "recovery",
+      "verified": false,
+      "recovery": true
+    }
+  ]
+}
