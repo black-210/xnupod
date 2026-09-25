@@ -241,6 +241,7 @@ static inline void io_wait(void)
 static inline void cpu_cli(void)
 {
     __asm__ volatile ("cli");
+    (void)multiboot_info;
 }
 
 static inline void cpu_sti(void)
@@ -683,9 +684,10 @@ static void kernel_panic(const char *message)
  * Kernel entry
  * ============================================================ */
 
-void kernel_main(void)
+void kernel_main(uint32_t multiboot_info)
 {
     __asm__ volatile ("cli");
+    (void)multiboot_info;
     terminal_clear();
 
     terminal_write(
